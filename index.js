@@ -2,12 +2,15 @@
 
 const express = require('express');
 const multer = require('multer');
-
+var bodyParser = require('body-parser')
+const cors = require('cors')
 const { Pool } = require('pg');
 const port = process.env.PORT || 8000;
 
 const app = express();
-
+app.use(cors())
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 // Create a new pool instance
 const pool = new Pool({
   user: 'postgres',
@@ -46,10 +49,10 @@ app.post('/RegisterUser', upload.single('profilePic'), async (req, res) => {
             INSERT INTO Users (uid,email, pass, fullname, phoneNo, profilepic) 
             VALUES ($1, $2, $3, $4, $5, $6)
         `;
-        await pool.query(query, [uid, email, password, fullName, phoneNo, profilepic.filename]);
-        console.log('Uploaded file:', req.file);
-        console.log("User Ceated with UID: ")
-        res.status(201).send('User created successfully');
+        const result = await pool.query(query, [uid, email, password, fullName, phoneNo, profilepic.filename]);
+       // console.log('Uploaded file:', req.file);
+        console.log("User Ceated with UID: " , uid)
+        res.status(200).send('User created successfully');
     } catch (error) {
         console.error('Error creating user:', error);
         res.status(500).send('Internal Server Error');
