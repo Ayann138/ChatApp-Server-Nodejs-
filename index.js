@@ -1,6 +1,8 @@
 
 
 const express = require('express');
+const multer = require('multer');
+
 const { Pool } = require('pg');
 const port = process.env.PORT || 8000;
 
@@ -25,23 +27,35 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-app.post('/RegisterUser', async (req, res) => {
-    try {
-        const { uid, email, pass, fullname, phoneNo, profilepic } = req.body;
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/') // Specify the directory where files will be stored
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname) // Keep the original file name
+  }
+});
+const upload = multer({ storage: storage });
 
-        // Insert user data into the User table
+app.post('/RegisterUser', upload.single('profilePic'), async (req, res) => {
+    try {
+        const { uid, email, password, fullName, phoneNo } = req.body;
+        const profilepic = req.file; 
+
         const query = `
             INSERT INTO Users (uid,email, pass, fullname, phoneNo, profilepic) 
             VALUES ($1, $2, $3, $4, $5, $6)
         `;
-        await pool.query(query, [uid,email, pass, fullname, phoneNo, profilepic]);
-
+        await pool.query(query, [uid, email, password, fullName, phoneNo, profilepic.filename]);
+        console.log('Uploaded file:', req.file);
+        console.log("User Ceated with UID: ")
         res.status(201).send('User created successfully');
     } catch (error) {
         console.error('Error creating user:', error);
         res.status(500).send('Internal Server Error');
     }
 });
+
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
