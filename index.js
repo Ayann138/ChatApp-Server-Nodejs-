@@ -50,7 +50,6 @@ app.post('/RegisterUser', upload.single('profilePic'), async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6)
         `;
         const result = await pool.query(query, [uid, email, password, fullName, phoneNo, profilepic.filename]);
-       // console.log('Uploaded file:', req.file);
         console.log("User Ceated with UID: " , uid)
         res.status(200).send('User created successfully');
     } catch (error) {
@@ -58,6 +57,26 @@ app.post('/RegisterUser', upload.single('profilePic'), async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if(!email || !password){
+      res.status(404).send({ValidUser: false, Status: "Fill All The Required Fields" });
+    }
+    const query = `SELECT * FROM Users WHERE email = $1 AND pass = $2`;
+    const result = await pool.query(query, [email, password]);
+    if (result.rows[0]) {
+      res.status(200).send({ user: result.rows[0], ValidUser: true, Status: "User Logged-In" }); // Sending user data as an object
+    } else {
+      res.status(404).send({ user: result.rows[0], ValidUser: false, Status: "Invalid Credentials" });
+    }
+  } catch (err) {
+    console.error('Error during login:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
