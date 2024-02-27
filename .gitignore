@@ -1,2 +1,7 @@
 
 *.jpeg
+node_modules/
+package.json/
+
+*.json
+*.json

@@ -6,7 +6,7 @@ var bodyParser = require('body-parser')
 const cors = require('cors')
 const { Pool } = require('pg');
 const port = process.env.PORT || 8000;
-
+const bcrypt = require('bcrypt');
 const app = express();
 app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -41,21 +41,24 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.post('/RegisterUser', upload.single('profilePic'), async (req, res) => {
-    try {
-        const { uid, email, password, fullName, phoneNo } = req.body;
-        const profilepic = req.file; 
+  try {
+      const { uid, email, password, fullName, phoneNo } = req.body;
+      const profilepic = req.file; 
 
-        const query = `
-            INSERT INTO Users (uid,email, pass, fullname, phoneNo, profilepic) 
-            VALUES ($1, $2, $3, $4, $5, $6)
-        `;
-        const result = await pool.query(query, [uid, email, password, fullName, phoneNo, profilepic.filename]);
-        console.log("User Ceated with UID: " , uid)
-        res.status(200).send('User created successfully');
-    } catch (error) {
-        console.error('Error creating user:', error);
-        res.status(500).send('Internal Server Error');
-    }
+      // Hashing the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const query = `
+          INSERT INTO Users (uid,email, pass, fullname, phoneNo, profilepic) 
+          VALUES ($1, $2, $3, $4, $5, $6)
+      `;
+      const result = await pool.query(query, [uid, email, hashedPassword, fullName, phoneNo, profilepic.filename]);
+      console.log("User Created with UID: " , uid)
+      res.status(200).send('User created successfully');
+  } catch (error) {
+      console.error('Error creating user:', error);
+      res.status(500).send('Internal Server Error');
+  }
 });
 
 app.post('/login', async (req, res) => {
@@ -63,13 +66,20 @@ app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if(!email || !password){
       res.status(404).send({ValidUser: false, Status: "Fill All The Required Fields" });
+      return; 
     }
-    const query = `SELECT * FROM Users WHERE email = $1 AND pass = $2`;
-    const result = await pool.query(query, [email, password]);
-    if (result.rows[0]) {
-      res.status(200).send({ user: result.rows[0], ValidUser: true, Status: "User Logged-In" }); // Sending user data as an object
+    const query = `SELECT * FROM Users WHERE email = $1`;
+    const result = await pool.query(query, [email]);
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      const validPassword = await bcrypt.compare(password, user.pass);
+      if (validPassword) {
+        res.status(200).send({ user, ValidUser: true, Status: "User Logged-In" });
+      } else {
+        res.status(404).send({ ValidUser: false, Status: "Invalid Credentials" });
+      }
     } else {
-      res.status(404).send({ user: result.rows[0], ValidUser: false, Status: "Invalid Credentials" });
+      res.status(404).send({ ValidUser: false, Status: "Invalid Credentials" });
     }
   } catch (err) {
     console.error('Error during login:', err);
