@@ -134,6 +134,19 @@ app.get('/GetAllUserChats/:userid', async (req, res) => {
   }
 });
 
+app.post('/SendMessage', async (req, res) => {
+  try {
+    const {message_guid ,chat_guid, sender_guid, message_text, message_date} = req.body
+    const query = `Insert into chatmessages (message_guid ,chat_guid, sender_guid, message_text, message_date) VALUES($1, $2,$3,$4,$5)`
+    const response = await pool.query(query,[message_guid ,chat_guid, sender_guid, message_text, message_date])
+    res.status(200).json("Message Sent");
+
+  } catch (error) {
+      console.error('Error Getting UserChats:', error);
+      res.status(500).send('Internal Server Error');
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
