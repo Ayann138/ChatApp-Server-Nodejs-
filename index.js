@@ -1,34 +1,21 @@
-
-
 const express = require('express');
 const multer = require('multer');
 var bodyParser = require('body-parser')
 const cors = require('cors')
-const { Pool } = require('pg');
+const pool = require('./Config/db');
+const { generateToken } = require('./Config/token')
 const port = process.env.PORT || 8000;
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken')
 const app = express();
 app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-// Create a new pool instance
-const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'ChatApp',
-  password: '2906',
-  port: 5432, // Default PostgreSQL port
-});
+
 app.use(express.json())
 app.use(express.urlencoded({extended:false}));
 // Test the connection
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('Error connecting to PostgreSQL database', err);
-  } else {
-    console.log('Connected to PostgreSQL database');
-  }
-});
+
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -74,7 +61,14 @@ app.post('/login', async (req, res) => {
       const user = result.rows[0];
       const validPassword = await bcrypt.compare(password, user.pass);
       if (validPassword) {
-        res.status(200).send({ user, ValidUser: true, Status: "User Logged-In" });
+        const payload = {
+          userId: user.uid,
+          email: user.email
+        };
+        const token = generateToken(payload);
+
+        res.status(200).send({ user, token,ValidUser: true, Status: "User Logged-In" });
+ 
       } else {
         res.status(404).send({ ValidUser: false, Status: "Invalid Credentials" });
       }
