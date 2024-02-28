@@ -90,18 +90,50 @@ app.post('/AddUserChat', async (req, res) => {
     const senderQuery = ` SELECT fullname FROM users WHERE uid = $1`;
     const senderResult = await pool.query(senderQuery, [sender_guid]);
     const sender_fullname = senderResult.rows[0].fullname;
-
     const receiverQuery = `SELECT fullname FROM users WHERE uid = $1`;
     const receiverResult = await pool.query(receiverQuery, [receiver_guid]);
     const receiver_fullname = receiverResult.rows[0].fullname;
     console.log(`New UserChat Created beteen ${sender_fullname} and ${receiver_fullname}`)
     res.status(200).send(`New UserChat Created beteen ${sender_fullname} and ${receiver_fullname}`);
-
   } catch (error) {
     console.error('Error creating New UserChat:', error);
     res.status(500).send('Internal Server Error');
   }
 })
+app.get('/GetAllUserChats/:userid', async (req, res) => {
+  try {
+      const uid = req.params.userid;
+      const query = "SELECT * FROM UserChats WHERE sender_guid LIKE $1 OR receiver_guid LIKE $1";
+      const response = await pool.query(query, [uid]);
+
+      let userChats = [];
+
+      for (const row of response.rows) {
+          const senderQuery = `SELECT fullname FROM users WHERE uid = $1`;
+          const senderResult = await pool.query(senderQuery, [row.sender_guid]);
+          const sender_fullname = senderResult.rows[0].fullname;
+
+          const receiverQuery = `SELECT fullname FROM users WHERE uid = $1`;
+          const receiverResult = await pool.query(receiverQuery, [row.receiver_guid]);
+          const receiver_fullname = receiverResult.rows[0].fullname;
+
+          userChats.push({
+              chat_guid: row.chat_guid,
+              sender_guid: row.sender_guid,
+              receiver_guid: row.receiver_guid,
+              sender_name: sender_fullname,
+              receiver_name: receiver_fullname
+          });
+      }
+
+      res.status(200).json(userChats);
+
+  } catch (error) {
+      console.error('Error Getting UserChats:', error);
+      res.status(500).send('Internal Server Error');
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
