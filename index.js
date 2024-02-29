@@ -146,7 +146,17 @@ app.post('/SendMessage', async (req, res) => {
       res.status(500).send('Internal Server Error');
   }
 });
-
+app.get("/GetMessages/:chatguid" , async (req,res) => {
+  try{
+    const chat_guid = req.params.chatguid;
+    const query = `Select * from chatmessages where chat_guid like $1`
+    const response = await pool.query(query, [chat_guid])
+    res.status(200).json(response.rows)
+  }catch (error) {
+      console.error('Error Getting UserChat Messages:', error);
+      res.status(500).send('Internal Server Error');
+  }
+})
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
