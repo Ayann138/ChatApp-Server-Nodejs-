@@ -81,6 +81,19 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.get("/GetAllUser" , async(req, res) => {
+  try{
+    const query = `Select * from users`
+    const result = await pool.query(query)
+    if(result.rowCount == 0){
+       res.status(200).send("No User Exists");
+    }
+    res.status(200).send(result.rows);
+  }catch (error) {
+    console.error('Error getting user:', error);
+    res.status(500).send('Internal Server Error');
+  }
+})
 app.post('/AddUserChat', async (req, res) => {
 
   try {
