@@ -133,16 +133,19 @@ app.get('/GetAllUserChats/:userid', async (req, res) => {
           const senderResult = await pool.query(senderQuery, [row.sender_guid]);
           const sender_fullname = senderResult.rows[0].fullname;
 
-          const receiverQuery = `SELECT fullname FROM users WHERE uid = $1`;
+          const receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
           const receiverResult = await pool.query(receiverQuery, [row.receiver_guid]);
           const receiver_fullname = receiverResult.rows[0].fullname;
+          const receiver_email = receiverResult.rows[0].email;
+
 
           userChats.push({
               chat_guid: row.chat_guid,
               sender_guid: row.sender_guid,
               receiver_guid: row.receiver_guid,
               sender_name: sender_fullname,
-              receiver_name: receiver_fullname
+              receiver_name: receiver_fullname,
+              receiver_email: receiver_email
           });
       }
 
