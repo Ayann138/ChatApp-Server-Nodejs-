@@ -98,16 +98,23 @@ app.post('/AddUserChat', async (req, res) => {
 
   try {
     const { chat_guid, sender_guid, receiver_guid } = req.body
-    const query = `Insert into UserChats (chat_guid, sender_guid, receiver_guid) VALUES ($1, $2, $3)`
-    const response = await pool.query(query, [chat_guid, sender_guid, receiver_guid])
-    const senderQuery = ` SELECT fullname FROM users WHERE uid = $1`;
-    const senderResult = await pool.query(senderQuery, [sender_guid]);
-    const sender_fullname = senderResult.rows[0].fullname;
-    const receiverQuery = `SELECT fullname FROM users WHERE uid = $1`;
-    const receiverResult = await pool.query(receiverQuery, [receiver_guid]);
-    const receiver_fullname = receiverResult.rows[0].fullname;
-    console.log(`New UserChat Created beteen ${sender_fullname} and ${receiver_fullname}`)
-    res.status(200).send(`New UserChat Created beteen ${sender_fullname} and ${receiver_fullname}`);
+    const checkQuery = 'Select * from UserChats where (sender_guid = $1 and receiver_guid = $2) OR (sender_guid = $2 and receiver_guid = $1)'
+    const checkResposne = await pool.query(checkQuery , [sender_guid , receiver_guid])
+    if(checkResposne.rowCount > 0){
+      res.status(200).send(`User Chat Already Exits`);
+    }else{
+      const query = `Insert into UserChats (chat_guid, sender_guid, receiver_guid) VALUES ($1, $2, $3)`
+      const response = await pool.query(query, [chat_guid, sender_guid, receiver_guid])
+      const senderQuery = ` SELECT fullname FROM users WHERE uid = $1`;
+      const senderResult = await pool.query(senderQuery, [sender_guid]);
+      const sender_fullname = senderResult.rows[0].fullname;
+      const receiverQuery = `SELECT fullname FROM users WHERE uid = $1`;
+      const receiverResult = await pool.query(receiverQuery, [receiver_guid]);
+      const receiver_fullname = receiverResult.rows[0].fullname;
+      console.log(`New UserChat Created beteen ${sender_fullname} and ${receiver_fullname}`)
+      res.status(200).send(`New UserChat Created beteen ${sender_fullname} and ${receiver_fullname}`);
+    }
+
   } catch (error) {
     console.error('Error creating New UserChat:', error);
     res.status(500).send('Internal Server Error');
