@@ -123,27 +123,37 @@ app.post('/AddUserChat', async (req, res) => {
 app.get('/GetAllUserChats/:userid', async (req, res) => {
   try {
       const uid = req.params.userid;
-      const query = "SELECT * FROM UserChats WHERE sender_guid LIKE $1 OR receiver_guid LIKE $1";
+      const query = "SELECT * FROM UserChats WHERE sender_guid = $1 OR receiver_guid = $1";
       const response = await pool.query(query, [uid]);
 
       let userChats = [];
 
       for (const row of response.rows) {
-          const senderQuery = `SELECT fullname FROM users WHERE uid = $1`;
-          const senderResult = await pool.query(senderQuery, [row.sender_guid]);
-          const sender_fullname = senderResult.rows[0].fullname;
+          let senderName, senderGuid;
+          let receiverQuery,receiverResult;
+          if (row.sender_guid === uid) {
+              senderName = row.sender_name;
+              senderGuid = row.sender_guid;
+               receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
+               receiverResult = await pool.query(receiverQuery, [row.receiver_guid]);
+              console.log("Sender")
+          } else {
+              senderName = row.receiver_name;
+              senderGuid = row.receiver_guid;
+              receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
+              receiverResult = await pool.query(receiverQuery, [row.sender_guid]);
+              console.log("Receiver")
+          }
 
-          const receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
-          const receiverResult = await pool.query(receiverQuery, [row.receiver_guid]);
+
           const receiver_fullname = receiverResult.rows[0].fullname;
           const receiver_email = receiverResult.rows[0].email;
 
-
           userChats.push({
               chat_guid: row.chat_guid,
-              sender_guid: row.sender_guid,
+              sender_guid: senderGuid,
               receiver_guid: row.receiver_guid,
-              sender_name: sender_fullname,
+              sender_name: senderName,
               receiver_name: receiver_fullname,
               receiver_email: receiver_email
           });
@@ -157,9 +167,13 @@ app.get('/GetAllUserChats/:userid', async (req, res) => {
   }
 });
 
+
 app.post('/SendMessage', async (req, res) => {
   try {
     const {message_guid ,chat_guid, sender_guid, message_text, message_date} = req.body
+    if(chat_guid == null){
+        res.status(200).json("Provide Chat Guid");
+    }
     const query = `Insert into chatmessages (message_guid ,chat_guid, sender_guid, message_text, message_date) VALUES($1, $2,$3,$4,$5)`
     const response = await pool.query(query,[message_guid ,chat_guid, sender_guid, message_text, message_date])
     res.status(200).json("Message Sent");
