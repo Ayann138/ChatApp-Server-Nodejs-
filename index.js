@@ -6,7 +6,13 @@ const pool = require('./Config/db');
 const { generateToken } = require('./Config/token')
 const port = process.env.PORT || 8000;
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const { Socket } = require('socket.io');
+const io = require('socket.io')(8080,{
+  cors: {
+    origin: 'http://localhost:3000'
+  }
+})
 const app = express();
 app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -26,6 +32,27 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage: storage });
+let users = []
+io.on('connection', socket => {
+  //console.log("User Connected: ", socket.id)
+  socket.on('addUser' , userId =>{
+    const CheckUserExit = users.find(user => user.userId === userId)
+    if(!CheckUserExit){
+      const user = {userId, socketId: socket.id}
+      users.push(user)
+      io.emit('getUsers' , users)
+    }
+    console.log("users: " , users)
+
+  })
+  socket.on('disconnect' , () => {
+    users = users.filter(user => user.socketId !== socket.id);
+    io.emit('getUsers' , users)
+  })
+  // //to send something from backend to frontend we have to use io.emit
+  // io.emit("getUsers" , socket.userId)
+});
+
 
 app.post('/RegisterUser', upload.single('profilePic'), async (req, res) => {
   try {
@@ -136,13 +163,13 @@ app.get('/GetAllUserChats/:userid', async (req, res) => {
               senderGuid = row.sender_guid;
                receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
                receiverResult = await pool.query(receiverQuery, [row.receiver_guid]);
-              console.log("Sender")
+             // console.log("Sender")
           } else {
               senderName = row.receiver_name;
               senderGuid = row.receiver_guid;
               receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
               receiverResult = await pool.query(receiverQuery, [row.sender_guid]);
-              console.log("Receiver")
+            //  console.log("Receiver")
           }
 
 
