@@ -45,6 +45,16 @@ io.on('connection', socket => {
     console.log("users: " , users)
 
   })
+
+  socket.on('sendMessage', ({message_guid, chat_guid, sender_guid, message_text, message_date,receiver_guid}) =>{
+    const receiver = users.find(user => user.userId === receiver_guid)
+    if(receiver){
+      io.to(receiver.socketId).to(socket.id).emit('getMessage',{
+        message_guid, chat_guid, sender_guid, message_text, message_date,receiver_guid
+      })
+    }
+  })
+
   socket.on('disconnect' , () => {
     users = users.filter(user => user.socketId !== socket.id);
     io.emit('getUsers' , users)
