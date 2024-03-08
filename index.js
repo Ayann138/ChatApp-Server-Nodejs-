@@ -48,8 +48,14 @@ io.on('connection', socket => {
 
   socket.on('sendMessage', ({message_guid, chat_guid, sender_guid, message_text, message_date,receiver_guid}) =>{
     const receiver = users.find(user => user.userId === receiver_guid)
+    const sender = users.find(user => user.userId === sender_guid)
+
     if(receiver){
-      io.to(receiver.socketId).to(socket.id).emit('getMessage',{
+      io.to(receiver.socketId).to(sender.socketId).emit('getMessage',{
+        message_guid, chat_guid, sender_guid, message_text, message_date,receiver_guid
+      })
+    }else{
+      io.to(sender.socketId).emit('getMessage',{
         message_guid, chat_guid, sender_guid, message_text, message_date,receiver_guid
       })
     }
