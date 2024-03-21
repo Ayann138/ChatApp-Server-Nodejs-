@@ -8,7 +8,7 @@ const port = process.env.PORT || 8000;
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Socket } = require('socket.io');
-const io = require('socket.io')(8080,{
+const io = require('socket.io')(8080, {
   cors: {
     origin: 'http://localhost:3000'
   }
@@ -35,35 +35,35 @@ const upload = multer({ storage: storage });
 let users = []
 io.on('connection', socket => {
   //console.log("User Connected: ", socket.id)
-  socket.on('addUser' , userId =>{
+  socket.on('addUser', userId => {
     const CheckUserExit = users.find(user => user.userId === userId)
-    if(!CheckUserExit){
-      const user = {userId, socketId: socket.id}
+    if (!CheckUserExit) {
+      const user = { userId, socketId: socket.id }
       users.push(user)
-      io.emit('getUsers' , users)
+      io.emit('getUsers', users)
     }
-    console.log("users: " , users)
+    console.log("users: ", users)
 
   })
 
-  socket.on('sendMessage', ({message_guid, chat_guid, sender_guid, message_text, message_date,receiver_guid}) =>{
+  socket.on('sendMessage', ({ message_guid, chat_guid, sender_guid, message_text, message_date, receiver_guid }) => {
     const receiver = users.find(user => user.userId === receiver_guid)
     const sender = users.find(user => user.userId === sender_guid)
 
-    if(receiver){
-      io.to(receiver.socketId).to(sender.socketId).emit('getMessage',{
-        message_guid, chat_guid, sender_guid, message_text, message_date,receiver_guid
+    if (receiver) {
+      io.to(receiver.socketId).to(sender.socketId).emit('getMessage', {
+        message_guid, chat_guid, sender_guid, message_text, message_date, receiver_guid
       })
-    }else{
-      io.to(sender.socketId).emit('getMessage',{
-        message_guid, chat_guid, sender_guid, message_text, message_date,receiver_guid
+    } else {
+      io.to(sender.socketId).emit('getMessage', {
+        message_guid, chat_guid, sender_guid, message_text, message_date, receiver_guid
       })
     }
   })
 
-  socket.on('disconnect' , () => {
+  socket.on('disconnect', () => {
     users = users.filter(user => user.socketId !== socket.id);
-    io.emit('getUsers' , users)
+    io.emit('getUsers', users)
   })
   // //to send something from backend to frontend we have to use io.emit
   // io.emit("getUsers" , socket.userId)
@@ -124,15 +124,15 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.get("/GetAllUser" , async(req, res) => {
-  try{
+app.get("/GetAllUser", async (req, res) => {
+  try {
     const query = `Select * from users`
     const result = await pool.query(query)
-    if(result.rowCount == 0){
-       res.status(200).send("No User Exists");
+    if (result.rowCount == 0) {
+      res.status(200).send("No User Exists");
     }
     res.status(200).send(result.rows);
-  }catch (error) {
+  } catch (error) {
     console.error('Error getting user:', error);
     res.status(500).send('Internal Server Error');
   }
@@ -142,10 +142,10 @@ app.post('/AddUserChat', async (req, res) => {
   try {
     const { chat_guid, sender_guid, receiver_guid } = req.body
     const checkQuery = 'Select * from UserChats where (sender_guid = $1 and receiver_guid = $2) OR (sender_guid = $2 and receiver_guid = $1)'
-    const checkResposne = await pool.query(checkQuery , [sender_guid , receiver_guid])
-    if(checkResposne.rowCount > 0){
+    const checkResposne = await pool.query(checkQuery, [sender_guid, receiver_guid])
+    if (checkResposne.rowCount > 0) {
       res.status(200).send(`User Chat Already Exits`);
-    }else{
+    } else {
       const query = `Insert into UserChats (chat_guid, sender_guid, receiver_guid) VALUES ($1, $2, $3)`
       const response = await pool.query(query, [chat_guid, sender_guid, receiver_guid])
       const senderQuery = ` SELECT fullname FROM users WHERE uid = $1`;
@@ -165,76 +165,97 @@ app.post('/AddUserChat', async (req, res) => {
 })
 app.get('/GetAllUserChats/:userid', async (req, res) => {
   try {
-      const uid = req.params.userid;
-      const query = "SELECT * FROM UserChats WHERE sender_guid = $1 OR receiver_guid = $1";
-      const response = await pool.query(query, [uid]);
+    const uid = req.params.userid;
+    const query = "SELECT * FROM UserChats WHERE sender_guid = $1 OR receiver_guid = $1";
+    const response = await pool.query(query, [uid]);
 
-      let userChats = [];
+    let userChats = [];
 
-      for (const row of response.rows) {
-          let senderName, senderGuid;
-          let receiverQuery,receiverResult;
-          if (row.sender_guid === uid) {
-              senderName = row.sender_name;
-              senderGuid = row.sender_guid;
-               receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
-               receiverResult = await pool.query(receiverQuery, [row.receiver_guid]);
-             // console.log("Sender")
-          } else {
-              senderName = row.receiver_name;
-              senderGuid = row.receiver_guid;
-              receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
-              receiverResult = await pool.query(receiverQuery, [row.sender_guid]);
-            //  console.log("Receiver")
-          }
-
-
-          const receiver_fullname = receiverResult.rows[0].fullname;
-          const receiver_email = receiverResult.rows[0].email;
-
-          userChats.push({
-              chat_guid: row.chat_guid,
-              sender_guid: senderGuid,
-              receiver_guid: row.receiver_guid,
-              sender_name: senderName,
-              receiver_name: receiver_fullname,
-              receiver_email: receiver_email
-          });
+    for (const row of response.rows) {
+      let senderName, senderGuid;
+      let receiverQuery, receiverResult;
+      if (row.sender_guid === uid) {
+        senderName = row.sender_name;
+        senderGuid = row.sender_guid;
+        receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
+        receiverResult = await pool.query(receiverQuery, [row.receiver_guid]);
+        // console.log("Sender")
+      } else {
+        senderName = row.receiver_name;
+        senderGuid = row.receiver_guid;
+        receiverQuery = `SELECT fullname, email FROM users WHERE uid = $1`;
+        receiverResult = await pool.query(receiverQuery, [row.sender_guid]);
+        //  console.log("Receiver")
       }
 
-      res.status(200).json(userChats);
+
+      const receiver_fullname = receiverResult.rows[0].fullname;
+      const receiver_email = receiverResult.rows[0].email;
+
+      userChats.push({
+        chat_guid: row.chat_guid,
+        sender_guid: senderGuid,
+        receiver_guid: row.receiver_guid,
+        sender_name: senderName,
+        receiver_name: receiver_fullname,
+        receiver_email: receiver_email
+      });
+    }
+
+    res.status(200).json(userChats);
 
   } catch (error) {
-      console.error('Error Getting UserChats:', error);
-      res.status(500).send('Internal Server Error');
+    console.error('Error Getting UserChats:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
 
+app.post('/CreateGroup', async (req, res) => {
+  try {
+    const query = `
+    INSERT INTO groupchats (groupguid,groupname) 
+    VALUES ($1, $2)
+`;
+    const result = await pool.query(query, [req.body.group_guid,req.body.groupName ]);
 
+    for(var i=0; i< req.body.selectedUsers.length; i++){
+      const query1 = `
+      INSERT INTO groupusers (groupguid,userguid) 
+      VALUES ($1, $2)
+  `;
+      const result = await pool.query(query1, [req.body.group_guid,req.body.selectedUsers[i] ]);
+    }
+    res.status(200).send(`New GroupChat Created`);
+
+  } catch (error) {
+    console.error('Error creating New UserChat:', error);
+    res.status(500).send('Internal Server Error');
+  }
+})
 app.post('/SendMessage', async (req, res) => {
   try {
-    const {message_guid ,chat_guid, sender_guid, message_text, message_date} = req.body
-    if(chat_guid == null){
-        res.status(200).json("Provide Chat Guid");
+    const { message_guid, chat_guid, sender_guid, message_text, message_date } = req.body
+    if (chat_guid == null) {
+      res.status(200).json("Provide Chat Guid");
     }
     const query = `Insert into chatmessages (message_guid ,chat_guid, sender_guid, message_text, message_date) VALUES($1, $2,$3,$4,$5)`
-    const response = await pool.query(query,[message_guid ,chat_guid, sender_guid, message_text, message_date])
+    const response = await pool.query(query, [message_guid, chat_guid, sender_guid, message_text, message_date])
     res.status(200).json("Message Sent");
 
   } catch (error) {
-      console.error('Error Getting UserChats:', error);
-      res.status(500).send('Internal Server Error');
+    console.error('Error Getting UserChats:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
-app.get("/GetMessages/:chatguid" , async (req,res) => {
-  try{
+app.get("/GetMessages/:chatguid", async (req, res) => {
+  try {
     const chat_guid = req.params.chatguid;
     const query = `Select * from chatmessages where chat_guid like $1`
     const response = await pool.query(query, [chat_guid])
     res.status(200).json(response.rows)
-  }catch (error) {
-      console.error('Error Getting UserChat Messages:', error);
-      res.status(500).send('Internal Server Error');
+  } catch (error) {
+    console.error('Error Getting UserChat Messages:', error);
+    res.status(500).send('Internal Server Error');
   }
 })
 app.get('/', (req, res) => {
