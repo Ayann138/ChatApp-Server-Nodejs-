@@ -209,6 +209,21 @@ app.get('/GetAllUserChats/:userid', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+app.get('/GetGroups/:userid' , async (req, res) => {
+  try {
+    const userId = req.params.userid;
+    const query = 'SELECT DISTINCT * FROM groupusers WHERE userguid = $1';
+    const result = await pool.query(query, [userId]);
+    if (result.rowCount === 0) {
+      res.status(200).send("No User Exists");
+    } else {
+      res.status(200).send(result.rows);
+    }
+  } catch (error) {
+    console.error('Error retrieving groups:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 app.post('/CreateGroup', async (req, res) => {
   try {
