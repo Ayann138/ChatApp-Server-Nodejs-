@@ -209,21 +209,30 @@ app.get('/GetAllUserChats/:userid', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-app.get('/GetGroups/:userid' , async (req, res) => {
+app.get('/GetGroups/:userid', async (req, res) => {
   try {
     const userId = req.params.userid;
-    const query = 'SELECT DISTINCT * FROM groupusers WHERE userguid = $1';
+    const query = 'SELECT DISTINCT groupguid FROM groupusers WHERE userguid = $1';
     const result = await pool.query(query, [userId]);
     if (result.rowCount === 0) {
       res.status(200).send("No User Exists");
     } else {
-      res.status(200).send(result.rows);
+      const groups = result.rows;
+      const groupChats = [];
+      for (let i = 0; i < groups.length; i++) {
+        const groupId = groups[i].groupguid;
+        const query2 = 'SELECT * FROM groupchats WHERE groupguid = $1';
+        const chatResult = await pool.query(query2, [groupId]);
+        groupChats.push({ group: groups[i], chats: chatResult.rows });
+      }
+      res.status(200).send(groupChats);
     }
   } catch (error) {
     console.error('Error retrieving groups:', error);
     res.status(500).send('Internal Server Error');
   }
 });
+
 
 app.post('/CreateGroup', async (req, res) => {
   try {
