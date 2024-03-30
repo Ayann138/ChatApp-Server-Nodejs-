@@ -282,6 +282,24 @@ app.get("/GetMessages/:chatguid", async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 })
+app.post('/SendGroupMessage', async (req, res) => {
+  try {
+    const { message_guid, group_guid, sender_guid, message_text, message_date } = req.body
+    if (chat_guid == null) {
+      res.status(200).json("Provide Chat Guid");
+    }
+    const query = `Insert into groupmessages (message_guid ,group_guid, sender_guid, message_text, message_date) VALUES($1, $2,$3,$4,$5)`
+    const response = await pool.query(query, [message_guid, group_guid, sender_guid, message_text, message_date])
+    res.status(200).json("Message Sent");
+
+  } catch (error) {
+    console.error('Error Getting UserChats:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+
+
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
