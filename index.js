@@ -285,7 +285,7 @@ app.get("/GetMessages/:chatguid", async (req, res) => {
 app.post('/SendGroupMessage', async (req, res) => {
   try {
     const { message_guid, group_guid, sender_guid, message_text, message_date } = req.body
-    if (chat_guid == null) {
+    if (group_guid == null) {
       res.status(200).json("Provide Chat Guid");
     }
     const query = `Insert into groupmessages (message_guid ,group_guid, sender_guid, message_text, message_date) VALUES($1, $2,$3,$4,$5)`
@@ -297,7 +297,17 @@ app.post('/SendGroupMessage', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-
+app.get('/GetGroupMessages/:groupguid' , async(req,res) => {
+  try {
+    const groupguid = req.params.groupguid;
+    const query = `Select * from groupmessages where groupguid like $1`
+    const response = await pool.query(query, [groupguid])
+    res.status(200).json(response.rows)
+  } catch (error) {
+    console.error('Error Getting UserChat Messages:', error);
+    res.status(500).send('Internal Server Error');
+  }
+})
 
 
 app.get('/', (req, res) => {
